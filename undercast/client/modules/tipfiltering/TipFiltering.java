@@ -33,6 +33,7 @@ public class TipFiltering implements IModule, IChatModifier {
         if(message.contains("§7§o[§b§l§oTip§r§7§o]§7")){
             message = null;
         }
+        
         return message;
     }
 }
