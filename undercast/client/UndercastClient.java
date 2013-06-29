@@ -21,8 +21,10 @@ import net.minecraft.src.mod_UndercastMLBase;
 import net.minecraft.util.StringUtils;
 import undercast.client.config.UndercastConfig;
 import undercast.client.interfaces.IChatModifier;
+import undercast.client.interfaces.IDisplay;
 import undercast.client.interfaces.IKeyRegistry;
 import undercast.client.interfaces.IModule;
+import undercast.client.modules.fpsviewer.FPSViewer;
 import undercast.client.modules.tipfiltering.TipFiltering;
 
 /**
@@ -44,6 +46,7 @@ public class UndercastClient {
         instance = this;
         modLoaderBaseMod = mod;
         modules.add(new TipFiltering());
+        modules.add(new FPSViewer());
         try {
             config = new UndercastConfig(new File(Minecraft.getMinecraftDir().getCanonicalPath() + File.separatorChar + "config" + File.separatorChar + "UndercastClient.cfg"));
             config.loadConfig();
@@ -62,7 +65,7 @@ public class UndercastClient {
         } catch (Exception ex) {
             Logger.getLogger(UndercastClient.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
 
     private void registerKeyBindings() {
@@ -144,6 +147,15 @@ public class UndercastClient {
      * @return
      */
     public boolean onTickInGame(float tick, Minecraft mc) {
+        int x = 2;
+        int y = 2;
+        for (IModule i : modules) {
+            if (i instanceof IDisplay) {
+                for (DisplayElement s : ((IDisplay) i).getDisplayStrings()) {
+                    mc.fontRenderer.drawStringWithShadow(s.message, x, y, s.color);
+                }
+            }
+        }
         return true;
     }
 
@@ -184,7 +196,7 @@ public class UndercastClient {
 
     public IModule getModuleFromName(String name) {
         for (IModule i : this.modules) {
-            if(i.getName().equals(name)){
+            if (i.getName().equals(name)) {
                 return i;
             }
         }
