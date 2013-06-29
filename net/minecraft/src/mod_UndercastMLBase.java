@@ -37,6 +37,10 @@ public class mod_UndercastMLBase extends BaseMod {
     }
 
     @Override
+    public String getName(){
+        return "UndercastMLBase";
+    }
+    @Override
     public String getVersion() {
         return "2.0";
     }

@@ -1,16 +1,29 @@
 package undercast.client;
 
-import undercast.client.modules.tipfiltering.TipFiltering;
+import undercast.client.guiOptions.UndercastGuiConfigButton;
+import cpw.mods.fml.common.ObfuscationReflectionHelper;
+import cpw.mods.fml.relauncher.ReflectionHelper;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiOptions;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.src.BaseMod;
 import net.minecraft.src.ModLoader;
 import net.minecraft.src.mod_UndercastMLBase;
 import net.minecraft.util.StringUtils;
+import undercast.client.config.UndercastConfig;
+import undercast.client.interfaces.IChatModifier;
+import undercast.client.interfaces.IKeyRegistry;
+import undercast.client.interfaces.IModule;
+import undercast.client.modules.tipfiltering.TipFiltering;
 
 /**
  *
@@ -24,19 +37,32 @@ public class UndercastClient {
     public HashMap<KeyBinding, Boolean> keyBindings = new HashMap<KeyBinding, Boolean>();
     public String forgeNewMessage = null;
     public boolean shouldUseForgeNewMessage = false;
+    public UndercastConfig config;
+    private Integer buttonListSizeOfGuiOptions = null;
 
     public UndercastClient(BaseMod mod) {
         instance = this;
         modLoaderBaseMod = mod;
         modules.add(new TipFiltering());
-        this.registerKeyBindings();
+        try {
+            config = new UndercastConfig(new File(Minecraft.getMinecraftDir().getCanonicalPath() + File.separatorChar + "config" + File.separatorChar + "UndercastClient.cfg"));
+            config.loadConfig();
+        } catch (Exception ex) {
+        }
         this.loadModules();
+        this.registerKeyBindings();
     }
 
     private void loadModules() {
         for (IModule i : modules) {
-            i.load();
+            i.load(config);
         }
+        try {
+            config.loadConfig();
+        } catch (Exception ex) {
+            Logger.getLogger(UndercastClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
     }
 
     private void registerKeyBindings() {
@@ -131,9 +157,37 @@ public class UndercastClient {
      * @return
      */
     public boolean onTickInGUI(float tick, Minecraft mc, GuiScreen screen) {
+        if (screen instanceof GuiOptions) {
+            List customButtonList;
+            try {
+                customButtonList = ObfuscationReflectionHelper.getPrivateValue(GuiScreen.class, (GuiOptions) screen, 4);
+                if (this.buttonListSizeOfGuiOptions == null) {
+                    this.buttonListSizeOfGuiOptions = customButtonList.size();
+                }
+                if (customButtonList.size() == this.buttonListSizeOfGuiOptions) {
+                    customButtonList.add(new UndercastGuiConfigButton(301, screen.width / 2 + 5, screen.height / 6 + 60, 150, 20, "Undercast config", screen));
+                }
+                ObfuscationReflectionHelper.setPrivateValue(GuiScreen.class, (GuiOptions) screen, customButtonList, 4);
+            } catch (ReflectionHelper.UnableToAccessFieldException e) {
+            }
+        }
         return true;
     }
 
     public void keyboardEvent(KeyBinding key) {
+        for (IModule i : modules) {
+            if (i instanceof IKeyRegistry) {
+                ((IKeyRegistry) i).keyDown(key);
+            }
+        }
+    }
+
+    public IModule getModuleFromName(String name) {
+        for (IModule i : this.modules) {
+            if(i.getName().equals(name)){
+                return i;
+            }
+        }
+        return null;
     }
 }
